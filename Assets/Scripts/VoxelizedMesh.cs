@@ -75,8 +75,6 @@ public class VoxelizedMesh : MonoBehaviour
     {
         openSet.Clear();
         closedSet.Clear();
-        Debug.Log(p1 + " " + p2);
-        Debug.Log("----------");
 
         Node startNode = this.GridNodes[p1];
         Node endNode = this.GridNodes[p2];
@@ -126,7 +124,7 @@ public class VoxelizedMesh : MonoBehaviour
                     continue;
                 }
 
-                int cost = (int)currentNode.distance + 1;
+                float cost = currentNode.distance + Vector3.Distance(currentNode.Position, neighbourNode.Position);
                 if (!openSet.Contains(neighbourNode) || cost < neighbourNode.distance )
                 {
                     neighbourNode.distance = cost;
@@ -158,29 +156,25 @@ public class VoxelizedMesh : MonoBehaviour
     {
         Vector4 curBuffPoint, curGround;
         int rand;
-
+        int currentObjective;
+        List<Node> nodes = new List<Node>();
         do
         {
-            rand = Random.Range(0,  GridPoints.Count);
-            curBuffPoint =  BufferGridPoints[rand];
-            curGround =  GroundPoints[rand];
+            do
+            {
+                rand = Random.Range(0, GridPoints.Count);
+                curBuffPoint = BufferGridPoints[rand];
+                curGround = GroundPoints[rand];
 
+            } while (curBuffPoint.w >= pathThreshold || curGround.w != 1 || rand == currentStartPoint);
+            currentObjective = rand;
+            nodes = findPath(currentObjective, currentStartPoint);
 
-        } while (curBuffPoint.w >=  pathThreshold || curGround.w != 1 || rand ==  currentStartPoint);
-        int currentObjective = rand;
-        Debug.Log(this.GridPoints[currentStartPoint] + " " + this.GridPoints[currentObjective]);
-        completePath =  findPath( currentObjective, currentStartPoint);
+        } while (nodes == null);
+        currentStartPoint = currentObjective;
+        completePath = nodes;
 
-
-        if ( completePath == null)
-        {
-            PathGeneration();
-            return;
-        }
-
-         currentStartPoint = currentObjective;
-
-         dolly.m_Waypoints = new CinemachineSmoothPath.Waypoint[ completePath.Count];
+        dolly.m_Waypoints = new CinemachineSmoothPath.Waypoint[ completePath.Count];
         for (int i = 0; i <  completePath.Count; i++)
         {
              dolly.m_Waypoints[i].position =  PointToPosition( completePath[i].Position);
@@ -199,10 +193,22 @@ public class VoxelizedMesh : MonoBehaviour
         camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_ZDamping = 0;
         camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_PathPosition = 0;
         yield return new WaitForSeconds(.5f);
-        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_ZDamping = 1;
+        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_ZDamping = 10;
 
 
-        for (float alpha = 0f; alpha < this.dolly.m_Waypoints.Length; alpha += 0.2f)
+        /*
+        Vector3 relativePos = target.position - transform.position;
+
+        // the second argument, upwards, defaults to Vector3.up
+        Quaternion rotation = Quaternion.LookRotation(relativePos, Vector3.up);
+        for (float alpha = 0f; alpha < 1; alpha += 0.1f)
+        {
+            transform.rotation = Quaternion.Lerp(transform.rotation, rotation, alpha);
+            yield return new WaitForSeconds(.1f);
+        }
+        */
+
+        for (float alpha = 0f; alpha < this.dolly.m_Waypoints.Length*1.2f; alpha += 0.15f)
         {
             camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_PathPosition = alpha;
             yield return new WaitForSeconds(.1f);
