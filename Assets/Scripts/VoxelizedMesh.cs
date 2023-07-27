@@ -53,6 +53,7 @@ public class VoxelizedMesh : MonoBehaviour
 
     public List<Node> openSet = new List<Node>();
     public List<Node> closedSet = new List<Node>();
+    public float scrollSpeed; 
 
     public void computeNodeGrid()
     {
@@ -190,32 +191,36 @@ public class VoxelizedMesh : MonoBehaviour
 
     public IEnumerator StartScrolling()
     {
-        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_ZDamping = 0;
-        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_PathPosition = 0;
-        yield return new WaitForSeconds(.5f);
-        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_ZDamping = 10;
 
-
-        /*
-        Vector3 relativePos = target.position - transform.position;
-
-        // the second argument, upwards, defaults to Vector3.up
-        Quaternion rotation = Quaternion.LookRotation(relativePos, Vector3.up);
-        for (float alpha = 0f; alpha < 1; alpha += 0.1f)
-        {
-            transform.rotation = Quaternion.Lerp(transform.rotation, rotation, alpha);
-            yield return new WaitForSeconds(.1f);
-        }
-        */
-
-        for (float alpha = 0f; alpha < this.dolly.m_Waypoints.Length*1.2f; alpha += 0.15f)
+        for (float alpha = 0f; alpha < this.dolly.m_Waypoints.Length * 1.4f; alpha += scrollSpeed)
         {
             camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_PathPosition = alpha;
             yield return new WaitForSeconds(.1f);
         }
-        
+
+        Vector3 relativePos = dolly.m_Waypoints[this.dolly.m_Waypoints.Length - 1].position - dolly.m_Waypoints[this.dolly.m_Waypoints.Length - 2].position;
+        Quaternion currentRotationVector = Quaternion.LookRotation(relativePos, Vector3.up);
+
         PathGeneration();
-        
+
+        Vector3 newrelativePos = dolly.m_Waypoints[1].position - dolly.m_Waypoints[0].position;
+
+        // the second argument, upwards, defaults to Vector3.up
+        Quaternion rotation = Quaternion.LookRotation(newrelativePos, Vector3.up);
+
+        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_CameraUp = CinemachineTrackedDolly.CameraUpMode.Default;
+
+        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_ZDamping = 0;
+        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_PathPosition = 0;
+        yield return new WaitForSeconds(.1f);
+        for (float alpha = 0f; alpha < 1; alpha += 0.01f)
+        {
+            camera.transform.rotation = Quaternion.Lerp(currentRotationVector, rotation, alpha);
+            yield return new WaitForSeconds(.01f);
+        }
+        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_ZDamping = 3;
+
+        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_CameraUp = CinemachineTrackedDolly.CameraUpMode.PathNoRoll;
 
         this.StartCoroutine(this.StartScrolling());
 

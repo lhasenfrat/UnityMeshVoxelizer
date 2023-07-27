@@ -1,0 +1,24 @@
+for (float alpha = 0f; alpha < this.dolly.m_Waypoints.Length*1.4f; alpha += scroolSpeed)
+        {
+            camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_PathPosition = alpha;
+            yield return new WaitForSeconds(.1f);
+        }
+
+        Vector3 relativePos = dolly.m_Waypoints[this.dolly.m_Waypoints.Length-1].position - dolly.m_Waypoints[this.dolly.m_Waypoints.Length-2].position;
+        Quaternion currentRotationVector = Quaternion.LookRotation(relativePos, Vector3.up);
+
+        PathGeneration();
+
+        Vector3 newrelativePos = dolly.m_Waypoints[1].position - dolly.m_Waypoints[0].position;
+
+        // the second argument, upwards, defaults to Vector3.up
+        Quaternion rotation = Quaternion.LookRotation(newrelativePos, Vector3.up);
+
+        camera.GetCinemachineComponent<CinemachineTrackedDolly>().m_CameraUp = CinemachineTrackedDolly.CameraUpMode.Default;
+
+
+        for (float alpha = 0f; alpha < 1; alpha += 0.1f)
+        {
+            camera.transform.rotation = Quaternion.Lerp(currentRotationVector, rotation, alpha);
+            yield return new WaitForSeconds(.1f);
+        }
